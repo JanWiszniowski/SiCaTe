@@ -2,8 +2,8 @@
 
 """
 import numpy as np
-from sicate.rnd import f_rnd_mag_gr
-from sicate.m_max import m_max_direct_tp, m_max_original_tp
+import sicate.gr as gr
+from sicate.tp import m_max_direct, m_max_original
 import matplotlib.pyplot as plt
 
 
@@ -16,25 +16,15 @@ def test_tp(nr_mags, beta, m_min, m_max, nr_catalogs):
         tp_iter_v = []
         m_max_obs_v = []
         for i_catalogs in range(nr_catalogs):  # LOOP OF CATALOGUES ===========
-            mag_v = f_rnd_mag_gr(nr_mag, beta, m_min, m_max)
+            mag_v = gr.rnd_mag(nr_mag, beta, m_min, m_max)
             m_max_obs = np.max(mag_v)
-            tp_v.append(m_max_original_tp(m_max_obs, nr_mag, beta, m_min))
-            tp_iter_v.append(m_max_direct_tp(m_max_obs, nr_mag, beta, m_min))
+            tp_v.append(m_max_original(m_max_obs, nr_mag, beta, m_min))
+            tp_iter_v.append(m_max_direct(m_max_obs, nr_mag, beta, m_min))
             m_max_obs_v.append(m_max_obs)
         tp_list.append(tp_v)
         tp_iter_list.append(tp_iter_v)
         m_max_obs_list.append(m_max_obs_v)
     return tp_list, tp_iter_list, m_max_obs_list
-
-
-# def process(test, nr_mags, beta, m_min, m_max, nr_catalogs):
-#     tp_original = []
-#     tp_iter = []
-#     for nr_mag in nr_mags:
-#         results = test(nr_mag, beta, m_min, m_max, nr_catalogs)
-#         tp_original.append(results[0])
-#         tp_iter.append(results[1])
-#     return tp_original, tp_iter
 
 
 def boxplot(lists, tick_labels, level, level_label, title, notch=False):
@@ -50,7 +40,7 @@ def boxplot(lists, tick_labels, level, level_label, title, notch=False):
 def pointplot(x, y, xy_label, level, level_label, title):
     figure, axis = plt.subplots()
     axis.set_title(title)
-    axis.plot(x, y, 'o', label=xy_label)
+    axis.semilogx(x, y, 'o', label=xy_label)
     axis.hlines(level, x[0], x[-1], linestyles='dotted', label=level_label)
     axis.legend()
 
@@ -61,7 +51,7 @@ def main():
     m_min = 3.0
     beta = 2.3
     notch = False
-    nr_mag_in_catalog = range(1000, 20001, 1000)
+    nr_mag_in_catalog = [v * p for p in (100, 1000, 10000) for v in (1, 2, 5)]
     tp_orig_list, tp_iter_list, m_max_obs_list = test_tp(nr_mag_in_catalog, beta, m_min, m_max, nr_catalogs)
     solved_tp_iter_list = [[tp_i for tp_i in tp_iter_v if tp_i is not None] for tp_iter_v in tp_iter_list]
     solved_delta_list = [[tp_i1 - tp_i2 for tp_i1, tp_i2 in zip(tp_iter_v, m_max_obs_v) if tp_i1 is not None]
