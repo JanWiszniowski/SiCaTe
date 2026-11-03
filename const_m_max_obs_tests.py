@@ -10,13 +10,19 @@ def rnd_m_max(nr_mag, beta, m_min, m_max_range, nr_catalogs):
         m_max = np.random.rand() * (m_max_range[1] - m_max_range[0]) + m_max_range[0]
         # print(m_max)
         mag_v = gr.rnd_mag(nr_mag, beta, m_min, m_max)
-        m_max_obs = round(np.max(mag_v) * 5) / 5
+        m_max_obs = np.max(mag_v)
+        if m_max_obs > m_max:
+            print(f"{m_max_obs} > {m_max}")
+        d_m_max_obs = round(m_max_obs * 5) / 5
         # m_max_obs = np.round(np.max(mag_v), decimals=1)
-        if m_max_obs not in m_max_obs_dict:
-            m_max_obs_dict[m_max_obs] = {'m_max': [], 'm_max_direct': [], 'm_max_original': []}
-        m_max_obs_dict[m_max_obs]['m_max_original'].append(m_max_original(m_max_obs, nr_mag, beta, m_min))
-        m_max_obs_dict[m_max_obs]['m_max_direct'].append(m_max_direct(m_max_obs, nr_mag, beta, m_min))
-        m_max_obs_dict[m_max_obs]['m_max'].append(m_max)
+        if d_m_max_obs not in m_max_obs_dict:
+            m_max_obs_dict[d_m_max_obs] = {'m_max': [], 'm_max_direct': [], 'm_max_original': [],
+                                           'm_max_obs': [], 'd_m_max': []}
+        m_max_obs_dict[d_m_max_obs]['m_max_original'].append(m_max_original(m_max_obs, nr_mag, beta, m_min))
+        m_max_obs_dict[d_m_max_obs]['m_max_direct'].append(m_max_direct(m_max_obs, nr_mag, beta, m_min))
+        m_max_obs_dict[d_m_max_obs]['m_max'].append(m_max)
+        m_max_obs_dict[d_m_max_obs]['m_max_obs'].append(m_max_obs)
+        m_max_obs_dict[d_m_max_obs]['d_m_max'].append(m_max - m_max_obs)
     return m_max_obs_dict
 
 
@@ -68,6 +74,7 @@ def delta_sel2(m_max_obs_dict, m_max_obs_list, beta):
         lists.append(corrected_m_max_estimated)
     return lists
 
+
 def delta_sel3(m_max_obs_dict, m_max_obs_list):
     lists = []
     for m_max_obs_val in m_max_obs_list:
@@ -76,6 +83,18 @@ def delta_sel3(m_max_obs_dict, m_max_obs_list):
                                                              m_max_obs_dict[m_max_obs_val]['m_max_original'])]
         lists.append(corrected_m_max_estimated)
     return lists
+
+
+def delta_sel4(m_max_obs_dict, m_max_obs_list):
+    lists = []
+    for m_max_obs_val in m_max_obs_list:
+        # corrected_m_max_estimated = [val for val in m_max_obs_dict[m_max_obs_val]['d_m_max']]
+        corrected_m_max_estimated = [val_m - val_d
+                                     for val_m, val_d in zip(m_max_obs_dict[m_max_obs_val]['m_max'],
+                                                             m_max_obs_dict[m_max_obs_val]['m_max_obs'])]
+        lists.append(corrected_m_max_estimated)
+    return lists
+
 
 def main():
     nr_catalogs = 20000
@@ -95,17 +114,19 @@ def main():
         # # lists = [m_max_obs_dict[m_max_obs_val]['m_max'] for m_max_obs_val in m_max_obs_list]
         # # boxplot_m_max_obs(m_max_obs_list, lists, f"{nr_mag} magnitudes: real {m_max_text}", notch=notch)
         # # lists = [m_max_obs_dict[m_max_obs_val]['m_max_original'] for m_max_obs_val in m_max_obs_list]
-        lists1 = delta_sel(m_max_obs_dict, m_max_obs_list, 'm_max_direct')
-        lists = delta_sel3(m_max_obs_dict, m_max_obs_list)
-        axis = axes[axis_index % 3, axis_index // 3]
+        # lists1 = delta_sel(m_max_obs_dict, m_max_obs_list, 'm_max_direct')
+        # lists = delta_sel3(m_max_obs_dict, m_max_obs_list)
+        lists = delta_sel4(m_max_obs_dict, m_max_obs_list)
+        axis = axes[axis_index // 3, axis_index % 3]
         # boxplot_m_max_obs(m_max_obs_list[:8], lists[:8], f"{nr_mag} events", corected=len(lists1),
         #                   notch=notch, axis=axis, level=0)
         boxplot_m_max_obs(m_max_obs_list[:8], lists[:8], f"{nr_mag} events",
-                          notch=notch, axis=axis, level=0)
-        if axis_index % 3 == 2:
+                          notch=notch, axis=axis, level=1 / beta, level_label=r"$1/\beta$")
+        if axis_index >= 6:
             axis.set_xlabel(r"$m_{max}^{obs}$")
-        if axis_index < 3:
-            axis.set_ylabel(r"$m_{max}-\hat{m}_{max}$")
+        if axis_index % 3 == 0:
+            # axis.set_ylabel(r"$m_{max}-\hat{m}_{max}$")
+            axis.set_ylabel(r"$m_{max}-m_{max}^{obs}$")
 
     plt.show(block=True)
 
