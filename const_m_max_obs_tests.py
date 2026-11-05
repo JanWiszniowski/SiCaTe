@@ -30,12 +30,21 @@ def boxplot_m_max_obs(m_max_obs_list, lists, title, corected=1000, level=None, l
                       notch=False, axis=None):
     if axis is None:
         figure, axis = plt.subplots()
-    axis.set_title(title)
+    axis.set_title(title, loc='left')
     colors = ['k' if idx < corected else 'm' for idx in range(len(lists))]
-    bplot = axis.boxplot(lists, notch=notch, sym='k.', tick_labels=m_max_obs_list[:len(lists)])
+    begin_list = 0
+    while len(lists[begin_list]) < 20:
+        begin_list += 1
+    len_lists = len(lists)
+    if len_lists > 12:
+        m_max_obs_labels = [f"{m_max_obs_list[idx + begin_list]}" if idx % 2 == 0 else ""
+                            for idx in range(len_lists - begin_list)]
+    else:
+        m_max_obs_labels = [f"{m_max_obs_list[idx + begin_list]}" for idx in range(len_lists - begin_list)]
+    bplot = axis.boxplot(lists[begin_list:], notch=notch, sym='k-', tick_labels=m_max_obs_labels)
     for patch, color in zip(bplot['boxes'], colors):
         patch.set_color(color)
-    # axis.tick_params("x", rotation=45)
+    # axis.tick_params("x", rotation=-25)
     if level is not None:
         axis.hlines(level, 0, len(lists) + 1, colors=None, linestyles='dotted', label=level_label)
         if level_label is not None:
@@ -52,7 +61,7 @@ def corrected(m_max_obs_dict, m_max_obs_list, key):
     return lists
 
 
-def delta_sel(m_max_obs_dict, m_max_obs_list, key):
+def delta_sel1(m_max_obs_dict, m_max_obs_list, key):
     lists = []
     for m_max_obs_val in m_max_obs_list:
         corrected_m_max_estimated = [val_m - val
@@ -68,9 +77,10 @@ def delta_sel(m_max_obs_dict, m_max_obs_list, key):
 def delta_sel2(m_max_obs_dict, m_max_obs_list, beta):
     lists = []
     for m_max_obs_val in m_max_obs_list:
-        corrected_m_max_estimated = [val_m - val_d if val_d is not None else val_m - 1 / beta - m_max_obs_val
-                                     for val_m, val_d in zip(m_max_obs_dict[m_max_obs_val]['m_max'],
-                                                             m_max_obs_dict[m_max_obs_val]['m_max_direct'])]
+        corrected_m_max_estimated = [v_m - v_d if v_d is not None else v_m - 1 / beta - v_o
+                                     for v_m, v_d, v_o  in zip(m_max_obs_dict[m_max_obs_val]['m_max'],
+                                                               m_max_obs_dict[m_max_obs_val]['m_max_direct'],
+                                                               m_max_obs_dict[m_max_obs_val]['m_max_obs'])]
         lists.append(corrected_m_max_estimated)
     return lists
 
@@ -114,19 +124,32 @@ def main():
         # # lists = [m_max_obs_dict[m_max_obs_val]['m_max'] for m_max_obs_val in m_max_obs_list]
         # # boxplot_m_max_obs(m_max_obs_list, lists, f"{nr_mag} magnitudes: real {m_max_text}", notch=notch)
         # # lists = [m_max_obs_dict[m_max_obs_val]['m_max_original'] for m_max_obs_val in m_max_obs_list]
-        # lists1 = delta_sel(m_max_obs_dict, m_max_obs_list, 'm_max_direct')
-        # lists = delta_sel3(m_max_obs_dict, m_max_obs_list)
-        lists = delta_sel4(m_max_obs_dict, m_max_obs_list)
+        m_max_direct_lists = delta_sel1(m_max_obs_dict, m_max_obs_list, 'm_max_direct')
+        m_max_beta_lists = delta_sel2(m_max_obs_dict, m_max_obs_list, beta)
+        m_max_obs_lists = delta_sel4(m_max_obs_dict, m_max_obs_list)
         axis = axes[axis_index // 3, axis_index % 3]
-        # boxplot_m_max_obs(m_max_obs_list[:8], lists[:8], f"{nr_mag} events", corected=len(lists1),
+        # for idx, m_max_direct_list in enumerate(m_max_direct_lists):
+        for idx, m_max_direct_list in enumerate(m_max_beta_lists):
+            print(f"{m_max_obs_list[idx]}:{len(m_max_direct_list)}", end='; ')
+        print()
+        boxplot_m_max_obs(m_max_obs_list, m_max_beta_lists,
+                          f"{chr(97 + axis_index)}) $n(m_{{min}}={m_min})={nr_mag}$",
+                          corected=len(m_max_direct_lists),
+                          notch=notch, axis=axis, level=0)
+        # boxplot_m_max_obs(m_max_obs_list, m_max_direct_lists,
+        #                   f"{chr(97 + axis_index)}) $n(m_{{min}}={m_min})={nr_mag}$",
+        #                   corected=len(m_max_direct_lists),
         #                   notch=notch, axis=axis, level=0)
-        boxplot_m_max_obs(m_max_obs_list[:8], lists[:8], f"{nr_mag} events",
-                          notch=notch, axis=axis, level=1 / beta, level_label=r"$1/\beta$")
+        # max_boxes = 15
+        # title_end = '' if len(m_max_obs_lists) <= max_boxes else f"; {max_boxes} boxes of {len(m_max_obs_lists)}"
+        # boxplot_m_max_obs(m_max_obs_list[:max_boxes], m_max_obs_lists[:max_boxes],
+        #                   f"{chr(97 + axis_index)}) $n(m_{{min}}={m_min})={nr_mag}${title_end} ",
+        #                   notch=notch, axis=axis, level=1 / beta, level_label=r"$1/\beta$")
         if axis_index >= 6:
             axis.set_xlabel(r"$m_{max}^{obs}$")
         if axis_index % 3 == 0:
-            # axis.set_ylabel(r"$m_{max}-\hat{m}_{max}$")
-            axis.set_ylabel(r"$m_{max}-m_{max}^{obs}$")
+            axis.set_ylabel(r"$m_{max}-\hat{m}_{max}$")
+            # axis.set_ylabel(r"$m_{max}-m_{max}^{obs}$")
 
     plt.show(block=True)
 
