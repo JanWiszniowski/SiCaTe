@@ -2,6 +2,8 @@
 
 """
 import numpy as np
+# from matplotlib.rcsetup import validate_bbox
+
 import sicate.gr as gr
 from sicate.tp import m_max_direct, m_max_original
 import matplotlib.pyplot as plt
@@ -36,12 +38,26 @@ def test_m_max_obs(nr_mag, beta, m_min, m_max, nr_catalogs):
     return m_max_obs_list
 
 
+def test_m_max_estimate(nr_mag, beta, m_min, m_max, nr_catalogs):
+    m_max_obs_list = []
+    m_max_original_list = []
+    m_max_direct_list = []
+    for _ in range(nr_catalogs):  # LOOP OF CATALOGUES ===========
+        mag_v = gr.rnd_mag(nr_mag, beta, m_min, m_max)
+        m_max_obs = np.max(mag_v)
+        mag_o = m_max_original(m_max_obs, nr_mag, beta, m_min)
+        mag_d = m_max_direct(m_max_obs, nr_mag, beta, m_min)
+        m_max_obs_list.append(m_max_obs)
+        m_max_original_list.append(mag_o)
+        m_max_direct_list.append(mag_d)
+    return m_max_obs_list, m_max_original_list, m_max_direct_list
+
 
 def boxplot(lists, tick_labels, level, level_label, title, notch=False):
     figure, axis = plt.subplots()
     axis.set_title(title)
-    axis.boxplot(lists, notch=notch, sym='k.', tick_labels=tick_labels,
-                 flierprops=dict(markersize=2))
+    axis.boxplot(lists, notch=notch, tick_labels=tick_labels,
+                 flierprops=dict(marker='o', markerfacecolor='lightgray', markersize=1, markeredgecolor='none'))
     axis.hlines(level, 0, len(lists) + 1, colors=None, linestyles='dotted', label=level_label)
     axis.tick_params("x", rotation=75)
     axis.legend()
@@ -65,6 +81,7 @@ def plot_points(x, y, axis=None, idx=None, m_max=None):
         label_text = f"${m_max_text}={m_max:.1f}$"
     axis.semilogx(x, y, color=color, label=label_text, marker=marker, markersize=6)
 
+
 def simulate_solution_existence():
     nr_catalogs = 1000
     m_max_range = (6.0, 8.5)
@@ -82,33 +99,20 @@ def simulate_solution_existence():
     axis1.hlines(0.95, nr_mag_in_catalog[0], nr_mag_in_catalog[-1], linestyles='dotted', label=r'$\alpha = 0.05$')
     axis1.set_title("Direct T-P estimator solution ratio")
     axis1.set_xlim(nr_mag_in_catalog[0] / 1.1, nr_mag_in_catalog[-1] * 1.1)
-    axis1.set_xlabel('n')
+    axis1.set_xlabel(f"$n(m_{{c}}={m_min})$")
     axis1.legend()
-
-    # boxplot(m_max_obs_list, tick_labels, m_max, '$m_{max}$',
-    #         "$m_{max}^{obs}$", notch=notch)
-    # boxplot(solved_m_max_obs_list, tick_labels, m_max, '$m_{max}$',
-    #         "$m_{max}^{obs}$ for allowed solutions", notch=notch)
-    # boxplot(solved_tp_iter_list, tick_labels, m_max, '$m_{max}$',
-    #         "$m_{max}$ of direct T-P estimator", notch=notch)
-    # boxplot(tp_orig_list, tick_labels, m_max, '$m_{max}$',
-    #         "$m_{max}$ of original T-P estimator for all solutions", notch=notch)
-    # boxplot(solved_tp_orig_list, tick_labels, m_max, '$m_{max}$',
-    #         "$m_{max}$ of original T-P estimator for allowed solutions", notch=notch)
-    # boxplot(solved_delta_list, tick_labels, 1 / beta, r'$1/\beta$',
-    #         r"$\Delta$ values", notch=notch)
-    plt.show(block=True)
 
 
 def simulate_m_max_obs():
-    nr_catalogs = 100
+    nr_catalogs = 10000
     m_max_range = (6.0, 8.5)
     m_min = 3.0
     beta = 2.3
     notch = False
     max_num = 10
     nr_mag_in_catalog = [v * p for p in (100, 1000, 10000) for v in (1, 2, 5)]
-    fig, axes = plt.subplots(3, 3, gridspec_kw={'hspace': 0.25})
+    fig, axes = plt.subplots(3, 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0.15, "wspace": 0.02},
+                             figsize=(12.0, 10.0))
     m_max_list = np.linspace(m_max_range[0], m_max_range[1], num=max_num)
     m_max_texts = [f'{m_max:.1f}' for m_max in m_max_list]
     for axis_index, nr_mag in enumerate(nr_mag_in_catalog):
@@ -118,19 +122,72 @@ def simulate_m_max_obs():
             m_max_obs_list = test_m_max_obs(nr_mag, beta, m_min, m_max, nr_catalogs)
             m_max_obs_lists.append(m_max_obs_list)
         axis = axes[axis_index // 3, axis_index % 3]
-        bplot = axis.boxplot(m_max_obs_lists, notch=notch, sym='k-', tick_labels=m_max_texts)
-        m_max_beta = [m_max - 1/beta for m_max in m_max_list]
-        axis.plot(range(1, max_num +1), m_max_list, color='k', linestyle='dashed', label=r'$m_{max}$')
-        axis.plot(range(1, max_num +1), m_max_beta, color='gray', linestyle='dotted', label=r'$m_{max} - 1/\beta$')
+        axis.boxplot(m_max_obs_lists, notch=notch, tick_labels=m_max_texts,
+                     flierprops=dict(marker='o', markerfacecolor='lightgray', markersize=1, markeredgecolor='none'))
+        m_max_beta = [m_max - 1 / beta for m_max in m_max_list]
+        axis.plot(range(1, max_num + 1), m_max_list, color='gray', linestyle='dashed', label=r'$m_{max}$')
+        axis.plot(range(1, max_num + 1), m_max_beta, color='gray', linestyle='dotted', label=r'$m_{max} - 1/\beta$')
         if axis_index >= 6:
             axis.set_xlabel(r"$m_{max}$", size=12)
         if axis_index % 3 == 0:
-            axis.set_ylabel("$M_{max}^{obs}$", size=12)
-        axis.set_title(f"{chr(97 + axis_index)}) $n(m_{{min}}={m_min})={nr_mag}$", loc='left')
+            axis.set_ylabel("$m_{max}^{obs}$", size=12)
+        axis.set_title(f"{chr(97 + axis_index)}) $n(m_{{c}}={m_min})={nr_mag}$", loc='left')
         axis.legend()
 
 
+def plot_one_boxplot(axes, axis_index, lists, m_max_list, m_min, nr_mag, notch=False):
+    max_num = len(m_max_list)
+    m_max_texts = [f'{m_max:.1f}' for m_max in m_max_list]
+    axis = axes[axis_index // 3, axis_index % 3]
+    axis.boxplot(lists, notch=notch, tick_labels=m_max_texts,
+                 flierprops=dict(marker='o', markerfacecolor='lightgray', markersize=1, markeredgecolor='none'))
+    if axis_index >= 6:
+        axis.set_xlabel(r"$m_{max}$", size=12)
+    if axis_index % 3 == 0:
+        axis.set_ylabel(r"$\hat{m}_{max}$", size=12)
+    axis.set_title(f"{chr(97 + axis_index)}) $n(m_{{c}}={m_min})={nr_mag}$", loc='left')
+    axis.plot(range(1, max_num + 1), m_max_list, color='gray', linestyle='dashed', label=r'$\hat{m}_{max}=m_{max}$')
+    axis.legend()
+
+
+def simulate_m_max_estimate(what=1):
+    nr_catalogs = 10000
+    m_max_range = (6.0, 8.5)
+    m_min = 3.0
+    beta = 2.3
+    notch = False
+    max_num = 10
+    nr_mag_in_catalog = [v * p for p in (100, 1000, 10000) for v in (1, 2, 5)]
+    fig, axes = plt.subplots(3, 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0.15, "wspace": 0.02},
+                               figsize=(12.0, 10.0))
+    m_max_list = np.linspace(m_max_range[0], m_max_range[1], num=max_num)
+    for axis_index, nr_mag in enumerate(nr_mag_in_catalog):
+        print(f"n={nr_mag}")
+        m_max_direct_lists = []
+        m_max_beta_lists = []
+        m_max_original_lists = []
+        m_max_original1_lists = []
+        for m_max in m_max_list:
+            print(f"{nr_mag}: m_max={m_max}")
+            obs_list, original_list, direct_list = test_m_max_estimate(nr_mag, beta, m_min, m_max, nr_catalogs)
+            m_max_direct_lists.append([v_d for v_d in direct_list if v_d is not None])
+            m_max_beta_lists.append([v_d if v_d is not None else v_b + 1 / beta
+                                     for v_d, v_b in zip(direct_list, obs_list)])
+            m_max_original1_lists.append([v_o for v_o, v_d in zip(original_list, direct_list) if v_d is not None])
+        if what == 1:
+            plot_one_boxplot(axes, axis_index, m_max_direct_lists, m_max_list, m_min, nr_mag, notch=notch)
+        if what == 2:
+            plot_one_boxplot(axes, axis_index, m_max_beta_lists, m_max_list, m_min, nr_mag, notch=notch)
+        if what == 3:
+            plot_one_boxplot(axes, axis_index, m_max_original_lists, m_max_list, m_min, nr_mag, notch=notch)
+        if what == 4:
+            plot_one_boxplot(axes, axis_index, m_max_original1_lists, m_max_list, m_min, nr_mag, notch=notch)
+
 if __name__ == "__main__":
-    simulate_solution_existence()
+    # simulate_solution_existence()
     # simulate_m_max_obs()
+    # simulate_m_max_estimate(1)
+    # simulate_m_max_estimate(2)
+    # simulate_m_max_estimate(3)
+    simulate_m_max_estimate(4)
     plt.show(block=True)
