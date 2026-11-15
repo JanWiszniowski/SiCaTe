@@ -8,9 +8,12 @@ def pdf(m, beta, m_min, m_max):
         magnitudes = np.array([m])
     else:
         raise ValueError("Wrong the magnitudes type")
-    magnitudes[magnitudes < m_min] = m_min
-    magnitudes[magnitudes > m_max] = m_max
-    return beta * np.exp(-beta * (magnitudes - m_min)) / (1 - np.exp(-beta * (m_max - m_min)))
+    # magnitudes[magnitudes < m_min] = m_min
+    # magnitudes[magnitudes > m_max] = m_max
+    ret_pdf = beta * np.exp(-beta * (magnitudes - m_min)) / (1 - np.exp(-beta * (m_max - m_min)))
+    ret_pdf[magnitudes > m_max] = 0.0
+    ret_pdf[magnitudes < m_min] = 0.0
+    return ret_pdf
 
 
 def cdf(m, beta, m_min, m_max):

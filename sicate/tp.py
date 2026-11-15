@@ -5,7 +5,7 @@ from scipy.special import lambertw
 
 
 class _Solver:
-    def __init__(self, m_max_obs, beta, n, m_min):
+    def __init__(self, m_max_obs, n, beta, m_min):
         self.beta = beta
         self.n = n
         self.m_min = m_min
@@ -16,25 +16,25 @@ class _Solver:
         return fun
 
 
-def _m_max_equation_to_solve(x, m_max_obs, beta, n, m_min):
+def _m_max_equation_to_solve(x, m_max_obs, n, beta, m_min):
     fun = x - m_max_obs - 1.0 / (n * gr.pdf(x, beta, m_min, x))
     return fun
 
 
-def condition(n, beta, m_min, m_max_obs):
+def condition(m_max_obs, n, beta, m_min):
     return np.log(n) - (n - 1) / n >= beta * (m_max_obs - m_min)
 
 
-# def tp_condition(n, beta, m_min, m_max_obs):
+# def tp_condition(m_max_obs, n, beta, m_min):
 #     return np.log(n) >= beta * (m_max_obs - m_min) + 1
 
 
-# def tp_condition(n, beta, m_min, m_max_obs):
+# def tp_condition(m_max_obs, n, beta, m_min):
 #     return np.exp(1) * np.exp(beta * (m_max_obs - m_min) - 1 / n) <= n
 
 
 def m_max_direct(m_max_obs, n, beta, m_min):
-    if condition(n, beta, m_min, m_max_obs):
+    if condition(m_max_obs, n, beta, m_min):
         w = lambertw(-np.exp(beta * (m_max_obs - m_min) - 1 / n) / n)
         if w.imag != 0.0:
             raise ValueError(
@@ -51,10 +51,10 @@ def m_max_direct(m_max_obs, n, beta, m_min):
 
 
 def m_max_solve(m_max_obs, n, beta, m_min):
-    # delta = _Solver(m_max_obs, beta, n, m_min)
+    # delta = _Solver(m_max_obs, n, beta, m_min)
     # root = fsolve(delta, np.array(m_max_obs))
-    root = fsolve(_m_max_equation_to_solve, np.array(m_max_obs), args=(m_max_obs, beta, n, m_min))
-    print(f"Result {n}, {m_max_obs}, {condition(n, beta, m_min, m_max_obs)}, {root}")
+    root = fsolve(_m_max_equation_to_solve, np.array(m_max_obs), args=(m_max_obs, n, beta, m_min))
+    print(f"Result {n}, {m_max_obs}, {condition(m_max_obs, n, beta, m_min)}, {root}")
     if not root:
         print(f"Solver can not find the solution for the T-P estimator")
         return None
@@ -71,7 +71,7 @@ def m_max_iter(m_max_obs, n, beta, m_min, accuracy=0.1):
     nr_iter_max = 10
     nr_iter = 0
     print(f"{np.log(n) - beta * (m_max_obs - m_min) - (n - 1) / n}")
-    if not condition(n, beta, m_min, m_max_obs):
+    if not condition(m_max_obs, n, beta, m_min):
         print(f"nop solution")
         print(f"{m_max_direct(m_max_obs, n, beta, m_min)}")
     else:
@@ -87,9 +87,9 @@ def m_max_iter(m_max_obs, n, beta, m_min, accuracy=0.1):
             m_max_est_new = m_max_obs + 1 / (n * f)
         else:
             nr_iter = nr_iter_max
-    print(f"Result {n}, {m_max_obs}, {condition(n, beta, m_min, m_max_obs)}, {m_max_est_new}")
+    print(f"Result {n}, {m_max_obs}, {condition(m_max_obs, n, beta, m_min)}, {m_max_est_new}")
     if nr_iter == nr_iter_max or m_max_est_new > 20.0:
-        print(f"Solver can not find the solution for the T-P estimator {n}, {condition(n, beta, m_min, m_max_obs)}")
+        print(f"Solver can not find the solution for the T-P estimator {n}, {condition(m_max_obs, n, beta, m_min)}")
         return None
     return m_max_est_new
 
