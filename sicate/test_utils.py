@@ -52,7 +52,7 @@ def plot_one_boxplot(axes, axis_index, lists, m_max_list, m_min, nr_mag, notch=F
     m_max_texts = [f'{m_max:.1f}' for m_max in m_max_list]
     axis = axes[axis_index // 3, axis_index % 3]
     axis.boxplot(lists, notch=notch, tick_labels=m_max_texts,
-                 flierprops=dict(marker='o', markerfacecolor='lightgray', markersize=1, markeredgecolor='none'))
+                 flierprops=dict(marker='o', markerfacecolor='gray', markersize=2, markeredgecolor='none'))
     if axis_index >= 6:
         axis.set_xlabel(r"$m_{max}$", size=12)
     if axis_index % 3 == 0:

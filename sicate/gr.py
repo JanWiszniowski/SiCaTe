@@ -29,7 +29,7 @@ def cdf(m, beta, m_min, m_max):
 
 
 def cdf_n(m, n, beta, m_min, m_max):
-    return np.pow(cdf(m, beta, m_min, m_max), n)
+    return np.pow(cdf(m, beta, m_min, m_max), n)[0]
 
 
 def rnd_mag(nr_mag, beta, m_min, m_max):

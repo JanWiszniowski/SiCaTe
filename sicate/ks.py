@@ -12,8 +12,8 @@ class _Solver:
         self.m_max_obs = m_max_obs
 
     def __call__(self, m_max):
-        delta = integrate.quad(lambda x: gr.cdf(x, self.beta, self.m_min, m_max) ** self.n, self.m_min, m_max)
-        fun = m_max - self.m_max_obs - delta[0]
+        delta = integrate.quad(gr.cdf_n, self.m_min, m_max[0], args=(self.n, self.beta, self.m_min, m_max[0]))
+        fun = m_max[0] - self.m_max_obs - delta[0]
         return fun
 
 
@@ -25,16 +25,19 @@ def m_max_solve(m_max_obs, n, beta, m_min):
     if not root:
         print(f"Solver can not find the solution for the T-P estimator")
         return None
-    if not ks_condition and root[0] < 10.0:
-        print(f"> Result {n}, {m_max_obs}, {ks_condition}, {root[0]}")
-    if ks_condition and root[0] >= 10.0:
-        print(f"< Result {n}, {m_max_obs}, {ks_condition}, {root[0]}")
     if ks_condition:
-        return root[0]
-    return None
+        if root[0] >= 10.0:
+            print(f"< Result {n}, {m_max_obs}, {ks_condition}, {root[0]}")
+            return None
+        else:
+            return root[0]
+    else:
+        if root[0] < 10.0:
+            print(f"> Result {n}, {m_max_obs}, {ks_condition}, {root[0]}")
+        return None
 
 def m_max_simple(m_max_obs, n, beta, m_min):
-    delta = integrate.quad(lambda x: gr.cdf(m_max_obs, beta, m_min, m_max_obs) ** n, m_min, m_max_obs)
+    delta = integrate.quad(gr.cdf_n, m_min, m_max_obs, args=(n, beta, m_min, m_max_obs))
     m_max = m_max_obs + delta
     return m_max[0]
 
